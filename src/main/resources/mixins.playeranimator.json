@@ -1,0 +1,15 @@
+{
+  "package": "dev.kosmx.playerAnim.mixin",
+  "refmap": "mixins.playeranimator.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "priority": 1000,
+  "mixins": [],
+  "client": [
+    "ModelBipedAnimationMixin",
+    "PlayerEntityMixin",
+    "RenderPlayerMixin"
+  ],
+  "server": []
+}

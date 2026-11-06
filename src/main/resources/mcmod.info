@@ -1,0 +1,20 @@
+[
+  {
+    "modid": "playeranimator",
+    "name": "Player Animator",
+    "description": "Player animation library, client side only.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/KosmX/minecraftPlayerAnimator",
+    "updateUrl": "",
+    "authorList": [
+      "KosmX"
+    ],
+    "credits": "Ported to 1.12.2 for Timeless & Classics Guns: Legacy",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": [
+      "required-after:mixinbooter"
+    ]
+  }
+]

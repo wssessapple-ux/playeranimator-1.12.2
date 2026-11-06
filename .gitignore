@@ -1,0 +1,16 @@
+# Gradle / IDE
+.gradle/
+build/
+run/
+out/
+.idea/
+*.iml
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# local port notes (kept out of the public repository)
+移植说明.md
+测试报告.md
