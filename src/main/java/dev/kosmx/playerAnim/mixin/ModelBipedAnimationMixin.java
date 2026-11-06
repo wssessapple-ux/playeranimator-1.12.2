@@ -26,6 +26,9 @@ public abstract class ModelBipedAnimationMixin {
     @Unique
     private static long playeranimator$lastDebugLog = 0L;
 
+    @Unique
+    private static int playeranimator$frameLogs = 0;
+
     @Shadow
     public ModelRenderer bipedHead;
     @Shadow
@@ -64,6 +67,24 @@ public abstract class ModelBipedAnimationMixin {
 
         if (!applier.isActive() || FirstPersonMode.isFirstPersonPass()) return;
 
+        if (Boolean.getBoolean("playeranimator.debugFrames") && playeranimator$frameLogs++ < 4000) {
+            org.apache.logging.log4j.LogManager.getLogger("playeranimator").info(
+                    "[frames] t={} partial={} R=({}, {}, {}) L=({}, {}, {}) body=({}, {}, {}) head=({}, {}, {})",
+                    System.currentTimeMillis(),
+                    net.minecraft.client.Minecraft.getMinecraft().getRenderPartialTicks(),
+                    bipedRightArm.rotateAngleX, bipedRightArm.rotateAngleY, bipedRightArm.rotateAngleZ,
+                    bipedLeftArm.rotateAngleX, bipedLeftArm.rotateAngleY, bipedLeftArm.rotateAngleZ,
+                    bipedBody.rotateAngleX, bipedBody.rotateAngleY, bipedBody.rotateAngleZ,
+                    bipedHead.rotateAngleX, bipedHead.rotateAngleY, bipedHead.rotateAngleZ);
+        }
+
+        boolean debugLocal = Boolean.getBoolean("playeranimator.debugFrames")
+                && entityIn == Minecraft.getMinecraft().player;
+        float baseRx = bipedRightArm.rotateAngleX, baseRy = bipedRightArm.rotateAngleY, baseRz = bipedRightArm.rotateAngleZ;
+        float baseLx = bipedLeftArm.rotateAngleX, baseLy = bipedLeftArm.rotateAngleY, baseLz = bipedLeftArm.rotateAngleZ;
+        float baseHx = bipedHead.rotateAngleX, baseHy = bipedHead.rotateAngleY, baseHz = bipedHead.rotateAngleZ;
+        float baseTx = bipedBody.rotateAngleX, baseTy = bipedBody.rotateAngleY, baseTz = bipedBody.rotateAngleZ;
+
         if (Boolean.getBoolean("playeranimator.debugModel")) {
             long now = System.currentTimeMillis();
             if (now - playeranimator$lastDebugLog > 1000L) {
@@ -83,6 +104,24 @@ public abstract class ModelBipedAnimationMixin {
         applier.updatePart("leftArm", bipedLeftArm);
         applier.updatePart("rightLeg", bipedRightLeg);
         applier.updatePart("leftLeg", bipedLeftLeg);
+
+        if (debugLocal) {
+            float r = 180f / (float) Math.PI;
+            org.apache.logging.log4j.LogManager.getLogger("playeranimator").info(
+                    "[pose] t={} p={} netHeadYaw={} headPitch={} limb={} | base R=({},{},{}) L=({},{},{}) H=({},{},{}) T=({},{},{}) | fin R=({},{},{}) L=({},{},{}) H=({},{},{}) T=({},{},{})",
+                    System.currentTimeMillis(),
+                    String.format("%.3f", net.minecraft.client.Minecraft.getMinecraft().getRenderPartialTicks()),
+                    String.format("%.2f", netHeadYaw), String.format("%.2f", headPitch),
+                    String.format("%.2f", limbSwingAmount),
+                    String.format("%.1f", baseRx * r), String.format("%.1f", baseRy * r), String.format("%.1f", baseRz * r),
+                    String.format("%.1f", baseLx * r), String.format("%.1f", baseLy * r), String.format("%.1f", baseLz * r),
+                    String.format("%.1f", baseHx * r), String.format("%.1f", baseHy * r), String.format("%.1f", baseHz * r),
+                    String.format("%.1f", baseTx * r), String.format("%.1f", baseTy * r), String.format("%.1f", baseTz * r),
+                    String.format("%.1f", bipedRightArm.rotateAngleX * r), String.format("%.1f", bipedRightArm.rotateAngleY * r), String.format("%.1f", bipedRightArm.rotateAngleZ * r),
+                    String.format("%.1f", bipedLeftArm.rotateAngleX * r), String.format("%.1f", bipedLeftArm.rotateAngleY * r), String.format("%.1f", bipedLeftArm.rotateAngleZ * r),
+                    String.format("%.1f", bipedHead.rotateAngleX * r), String.format("%.1f", bipedHead.rotateAngleY * r), String.format("%.1f", bipedHead.rotateAngleZ * r),
+                    String.format("%.1f", bipedBody.rotateAngleX * r), String.format("%.1f", bipedBody.rotateAngleY * r), String.format("%.1f", bipedBody.rotateAngleZ * r));
+        }
 
         // ModelBiped copied head -> headwear before this injection, redo it.
         bipedHeadwear.rotateAngleX = bipedHead.rotateAngleX;

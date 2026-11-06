@@ -24,6 +24,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(RenderPlayer.class)
 public abstract class RenderPlayerMixin {
 
+    @org.spongepowered.asm.mixin.Unique
+    private static int playeranimator$rotationLogs = 0;
+
     @Inject(method = "renderRightArm", at = @At("HEAD"))
     private void playeranimator$firstPersonRightStart(AbstractClientPlayer player, CallbackInfo ci) {
         FirstPersonMode.setFirstPersonPass(true);
@@ -57,6 +60,32 @@ public abstract class RenderPlayerMixin {
         // These are additive properties (upstream semantics)
         Vec3f position = applier.get3DTransform("body", TransformType.POSITION, Vec3f.ZERO);
         Vec3f rotation = applier.get3DTransform("body", TransformType.ROTATION, Vec3f.ZERO);
+
+        if (Boolean.getBoolean("playeranimator.debugFrames") && player == minecraft.player
+                && playeranimator$rotationLogs++ < 4000) {
+            float p = partialTicks;
+            float headYaw = player.prevRotationYawHead
+                    + p * net.minecraft.util.math.MathHelper.wrapDegrees(player.rotationYawHead - player.prevRotationYawHead);
+            float bodyYaw = player.prevRenderYawOffset
+                    + p * net.minecraft.util.math.MathHelper.wrapDegrees(player.renderYawOffset - player.prevRenderYawOffset);
+            org.apache.logging.log4j.LogManager.getLogger("playeranimator").info(
+                    "[body] p={} f={} f1={} L={} bodyRotDeg=({},{},{}) bodyPos=({},{},{}) raw=({},{}|{},{}|{},{})",
+                    String.format("%.3f", p),
+                    String.format("%.2f", rotationYaw),
+                    String.format("%.2f", headYaw),
+                    String.format("%.2f", net.minecraft.util.math.MathHelper.wrapDegrees(headYaw - bodyYaw)),
+                    String.format("%.2f", Math.toDegrees(rotation.getX())),
+                    String.format("%.2f", Math.toDegrees(rotation.getY())),
+                    String.format("%.2f", Math.toDegrees(rotation.getZ())),
+                    String.format("%.2f", position.getX()),
+                    String.format("%.2f", position.getY()),
+                    String.format("%.2f", position.getZ()),
+                    String.format("%.2f", player.prevRenderYawOffset), String.format("%.2f", player.renderYawOffset),
+                    String.format("%.2f", player.prevRotationYawHead), String.format("%.2f", player.rotationYawHead),
+                    String.format("%.2f", player.prevRotationPitch), String.format("%.2f", player.rotationPitch));
+        }
+
+        if (!Boolean.getBoolean("playeranimator.bodyAdjust")) return;
 
         GlStateManager.translate(position.getX(), position.getY() + 0.7f, position.getZ());
         GlStateManager.rotate((float) Math.toDegrees(rotation.getZ()), 0f, 0f, 1f); // roll
