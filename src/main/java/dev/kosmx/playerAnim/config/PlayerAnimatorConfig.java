@@ -26,6 +26,7 @@ public final class PlayerAnimatorConfig {
     private static final String CATEGORY_GENERAL = "general";
     private static final String CATEGORY_DEBUG = "debug";
     private static final String CATEGORY_NETWORK = "network";
+    private static final String CATEGORY_FIRST_PERSON = "firstPerson";
 
     private static final Logger LOGGER = LogManager.getLogger(PlayerAnimatorMod.MOD_ID);
 
@@ -35,6 +36,7 @@ public final class PlayerAnimatorConfig {
     private static boolean debugModel = false;
     private static boolean debugFrames = false;
     private static boolean networkAnimations = true;
+    private static boolean firstPersonAnimations = true;
 
     private PlayerAnimatorConfig() {
     }
@@ -65,6 +67,13 @@ public final class PlayerAnimatorConfig {
                             + "-Dplayeranimator.networkAnimations overrides this.",
                     "networkAnimations"
             );
+            firstPersonAnimations = readBoolean(
+                    configuration, "enable", CATEGORY_FIRST_PERSON, true,
+                    "Let clips animate the arm in the first person pass. A layer only shows up there when "
+                            + "its own FirstPersonMode is enabled, so clips that do not ask for it stay vanilla. "
+                            + "JVM property -Dplayeranimator.firstPerson overrides this.",
+                    "firstPerson"
+            );
         } catch (Throwable throwable) {
             LOGGER.warn("Player Animator config could not be read, falling back to defaults", throwable);
         } finally {
@@ -75,8 +84,8 @@ public final class PlayerAnimatorConfig {
             }
         }
         loaded = true;
-        LOGGER.info("Player Animator config: bodyAdjust={}, debugModel={}, debugFrames={}, network.enable={}",
-                bodyAdjust, debugModel, debugFrames, networkAnimations);
+        LOGGER.info("Player Animator config: bodyAdjust={}, debugModel={}, debugFrames={}, network.enable={}, firstPerson.enable={}",
+                bodyAdjust, debugModel, debugFrames, networkAnimations, firstPersonAnimations);
     }
 
     private static boolean readBoolean(Configuration configuration, String key, String category,
@@ -133,5 +142,10 @@ public final class PlayerAnimatorConfig {
     /** Accept animation packets from the server. */
     public static boolean isNetworkAnimations() {
         return cachedOrProperty("networkAnimations", networkAnimations);
+    }
+
+    /** Let clips drive the arm in the first person pass. */
+    public static boolean isFirstPersonAnimations() {
+        return cachedOrProperty("firstPerson", firstPersonAnimations);
     }
 }

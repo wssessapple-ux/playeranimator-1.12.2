@@ -28,8 +28,18 @@ public abstract class RenderPlayerMixin {
     @org.spongepowered.asm.mixin.Unique
     private static int playeranimator$rotationLogs = 0;
 
+    @org.spongepowered.asm.mixin.Unique
+    private static void playeranimator$refreshTickDelta(AbstractClientPlayer player) {
+        // The first person arm render never goes through applyRotations, so without this the
+        // animation would be evaluated with whatever tickDelta the last third person frame set.
+        AnimationApplier applier = ((IAnimatedPlayer) player).playerAnimator_getAnimation();
+        Minecraft minecraft = Minecraft.getMinecraft();
+        applier.setTickDelta(minecraft == null ? 0f : minecraft.getRenderPartialTicks());
+    }
+
     @Inject(method = "renderRightArm", at = @At("HEAD"))
     private void playeranimator$firstPersonRightStart(AbstractClientPlayer player, CallbackInfo ci) {
+        playeranimator$refreshTickDelta(player);
         FirstPersonMode.setFirstPersonPass(true);
     }
 
@@ -40,6 +50,7 @@ public abstract class RenderPlayerMixin {
 
     @Inject(method = "renderLeftArm", at = @At("HEAD"))
     private void playeranimator$firstPersonLeftStart(AbstractClientPlayer player, CallbackInfo ci) {
+        playeranimator$refreshTickDelta(player);
         FirstPersonMode.setFirstPersonPass(true);
     }
 

@@ -66,7 +66,10 @@ public abstract class ModelBipedAnimationMixin {
         playeranimator$resetPivot(applier, "rightLeg", bipedRightLeg);
         playeranimator$resetPivot(applier, "leftLeg", bipedLeftLeg);
 
-        if (!applier.isActive() || FirstPersonMode.isFirstPersonPass()) return;
+        if (!applier.isActive()) return;
+        // First person pass: the layer itself decides whether it exists there. AnimationStack
+        // skips layers whose FirstPersonMode is NONE, so a clip that doesn't opt in stays vanilla.
+        if (FirstPersonMode.isFirstPersonPass() && !PlayerAnimatorConfig.isFirstPersonAnimations()) return;
 
         // Cached at preInit: this used to be a System.getProperty lookup per model per frame.
         boolean debugFrames = PlayerAnimatorConfig.isDebugFrames();

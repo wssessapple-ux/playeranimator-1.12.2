@@ -49,10 +49,12 @@ in-game config GUI can edit it too):
 | `debugModel` | `debug` | `false` | Log the biped part rotations once per second. |
 | `debugFrames` | `debug` | `false` | Log the finished pose of every rendered frame. Very spammy, short sessions only. |
 | `enable` | `network` | `true` | Accept animation packets from the server. Turn it off to ignore whatever a server sends. |
+| `enable` | `firstPerson` | `true` | Run clips in the first person arm pass. Only layers whose `FirstPersonMode` is enabled show up there. |
 
 The JVM properties still win over the file, so existing command lines keep working:
 `-Dplayeranimator.bodyAdjust=true`, `-Dplayeranimator.debugModel=true`,
-`-Dplayeranimator.debugFrames=true`, `-Dplayeranimator.networkAnimations=false`.
+`-Dplayeranimator.debugFrames=true`, `-Dplayeranimator.networkAnimations=false`,
+`-Dplayeranimator.firstPerson=false`.
 
 ## API
 
@@ -118,6 +120,27 @@ Notes:
   query, and a packet sent to a client that cannot see the player is just ignored.
 - Packets are dispatched to the client thread instead of being applied from netty.
 
+## First person
+
+`RenderPlayer#renderRightArm` / `renderLeftArm` are the two places 1.12.2 draws the first
+person arm. Both run through `setRotationAngles`, so a clip posed there follows the same
+model the third person view uses, and `FirstPersonMode.isFirstPersonPass()` is set around
+them so `AnimationStack` can decide per layer: a layer with `FirstPersonMode.NONE` is
+transparent in first person, `VANILLA` / `THIRD_PERSON_MODEL` opt in. Turn the whole pass
+off with `firstPerson.enable = false`.
+
+Two things 1.12.2 does not give you:
+
+- **The arm's X rotation is forced to 0 by vanilla.** `renderRightArm` resets
+  `bipedRightArm.rotateAngleX` right before drawing, because the first person transform
+  assumes a horizontal arm. So the clip's pitch (raising / lowering the arm) is dropped
+  in first person; Y and Z (twist and sideways swing) and the arm's position offset do
+  show. Clips that lean on arm pitch will look wrong there.
+- **No first person body.** Vanilla has no first person player model at all, only one arm,
+  so `THIRD_PERSON_MODEL` (render the third person player model in front of the camera,
+  upstream's real answer) is not ported. It would need its own render path hung off
+  `ItemRenderer#renderItemInFirstPerson`.
+
 ## Pose mapping
 
 The animation is applied to the vanilla `ModelBiped` parts after
@@ -135,7 +158,8 @@ The animation is applied to the vanilla `ModelBiped` parts after
 
 - **Bend is not supported.** 1.12.2 has no `ModelPart` / custom vertex consumer support;
   the upstream bendy-lib code is not ported.
-- **No first-person animation.** Matches upstream `FirstPersonMode.NONE` semantics.
+- **First person is arm-only,** see [First person](#first-person); there is no first person
+  body and the arm's pitch is dropped by vanilla's own renderer.
 - **No automatic left-hand mirroring.** `minecraftApi.layers.LeftHandedHelperModifier`
   is provided for callers to add, as upstream does.
 - Debug switches moved into `config/playeranimator.cfg` (see [Config](#config)).
