@@ -2,6 +2,7 @@ package dev.kosmx.playerAnim.mixin;
 
 import dev.kosmx.playerAnim.api.TransformType;
 import dev.kosmx.playerAnim.api.firstPerson.FirstPersonMode;
+import dev.kosmx.playerAnim.config.PlayerAnimatorConfig;
 import dev.kosmx.playerAnim.core.util.Vec3f;
 import dev.kosmx.playerAnim.impl.IAnimatedPlayer;
 import dev.kosmx.playerAnim.impl.animation.AnimationApplier;
@@ -58,10 +59,16 @@ public abstract class RenderPlayerMixin {
         if (!applier.isActive()) return;
 
         // These are additive properties (upstream semantics)
+        boolean adjustBody = PlayerAnimatorConfig.isBodyAdjust();
+        boolean debugFrames = PlayerAnimatorConfig.isDebugFrames();
+        // Nothing to do unless the root matrix is really adjusted or the frame dump is on:
+        // the two transforms below allocate, and this runs per player, per frame.
+        if (!adjustBody && !debugFrames) return;
+
         Vec3f position = applier.get3DTransform("body", TransformType.POSITION, Vec3f.ZERO);
         Vec3f rotation = applier.get3DTransform("body", TransformType.ROTATION, Vec3f.ZERO);
 
-        if (Boolean.getBoolean("playeranimator.debugFrames") && player == minecraft.player
+        if (debugFrames && player == minecraft.player
                 && playeranimator$rotationLogs++ < 4000) {
             float p = partialTicks;
             float headYaw = player.prevRotationYawHead
@@ -85,7 +92,7 @@ public abstract class RenderPlayerMixin {
                     String.format("%.2f", player.prevRotationPitch), String.format("%.2f", player.rotationPitch));
         }
 
-        if (!Boolean.getBoolean("playeranimator.bodyAdjust")) return;
+        if (!adjustBody) return;
 
         GlStateManager.translate(position.getX(), position.getY() + 0.7f, position.getZ());
         GlStateManager.rotate((float) Math.toDegrees(rotation.getZ()), 0f, 0f, 1f); // roll

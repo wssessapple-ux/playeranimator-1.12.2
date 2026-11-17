@@ -34,6 +34,21 @@ The output jar is `build/libs/playeranimator-1.12.2-<version>.jar`.
 Drop the jar into `mods/` together with MixinBooter. The mod is client-side only
 (`clientSideOnly = true`) and can be installed on a server without effect.
 
+## Config
+
+`config/playeranimator.cfg` is written on first launch (regular Forge config, so the
+in-game config GUI can edit it too):
+
+| Key | Category | Default | Meaning |
+|---|---|---|---|
+| `bodyAdjust` | `general` | `false` | Apply the clip's `body` position/rotation to the model root matrix. Off by default: a mod that already rotates the root itself (e.g. a look-aligned body) would otherwise get that rotation twice. |
+| `debugModel` | `debug` | `false` | Log the biped part rotations once per second. |
+| `debugFrames` | `debug` | `false` | Log the finished pose of every rendered frame. Very spammy, short sessions only. |
+
+The JVM properties still win over the file, so existing command lines keep working:
+`-Dplayeranimator.bodyAdjust=true`, `-Dplayeranimator.debugModel=true`,
+`-Dplayeranimator.debugFrames=true`.
+
 ## API
 
 ```java
@@ -78,7 +93,7 @@ The animation is applied to the vanilla `ModelBiped` parts after
 - **No first-person animation.** Matches upstream `FirstPersonMode.NONE` semantics.
 - **No automatic left-hand mirroring.** `minecraftApi.layers.LeftHandedHelperModifier`
   is provided for callers to add, as upstream does.
-- Debug: `-Dplayeranimator.debugModel=true` logs biped rotations once per second.
+- Debug switches moved into `config/playeranimator.cfg` (see [Config](#config)).
 
 ## Notes
 
