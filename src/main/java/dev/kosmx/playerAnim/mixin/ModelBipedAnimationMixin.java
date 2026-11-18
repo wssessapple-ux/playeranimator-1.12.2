@@ -1,6 +1,7 @@
 package dev.kosmx.playerAnim.mixin;
 
 import dev.kosmx.playerAnim.api.firstPerson.FirstPersonMode;
+import dev.kosmx.playerAnim.config.PlayerAnimatorConfig;
 import dev.kosmx.playerAnim.impl.IAnimatedPlayer;
 import dev.kosmx.playerAnim.impl.animation.AnimationApplier;
 import net.minecraft.client.Minecraft;
@@ -67,7 +68,10 @@ public abstract class ModelBipedAnimationMixin {
 
         if (!applier.isActive() || FirstPersonMode.isFirstPersonPass()) return;
 
-        if (Boolean.getBoolean("playeranimator.debugFrames") && playeranimator$frameLogs++ < 4000) {
+        // Cached at preInit: this used to be a System.getProperty lookup per model per frame.
+        boolean debugFrames = PlayerAnimatorConfig.isDebugFrames();
+
+        if (debugFrames && playeranimator$frameLogs++ < 4000) {
             org.apache.logging.log4j.LogManager.getLogger("playeranimator").info(
                     "[frames] t={} partial={} R=({}, {}, {}) L=({}, {}, {}) body=({}, {}, {}) head=({}, {}, {})",
                     System.currentTimeMillis(),
@@ -78,14 +82,13 @@ public abstract class ModelBipedAnimationMixin {
                     bipedHead.rotateAngleX, bipedHead.rotateAngleY, bipedHead.rotateAngleZ);
         }
 
-        boolean debugLocal = Boolean.getBoolean("playeranimator.debugFrames")
-                && entityIn == Minecraft.getMinecraft().player;
+        boolean debugLocal = debugFrames && entityIn == Minecraft.getMinecraft().player;
         float baseRx = bipedRightArm.rotateAngleX, baseRy = bipedRightArm.rotateAngleY, baseRz = bipedRightArm.rotateAngleZ;
         float baseLx = bipedLeftArm.rotateAngleX, baseLy = bipedLeftArm.rotateAngleY, baseLz = bipedLeftArm.rotateAngleZ;
         float baseHx = bipedHead.rotateAngleX, baseHy = bipedHead.rotateAngleY, baseHz = bipedHead.rotateAngleZ;
         float baseTx = bipedBody.rotateAngleX, baseTy = bipedBody.rotateAngleY, baseTz = bipedBody.rotateAngleZ;
 
-        if (Boolean.getBoolean("playeranimator.debugModel")) {
+        if (PlayerAnimatorConfig.isDebugModel()) {
             long now = System.currentTimeMillis();
             if (now - playeranimator$lastDebugLog > 1000L) {
                 playeranimator$lastDebugLog = now;

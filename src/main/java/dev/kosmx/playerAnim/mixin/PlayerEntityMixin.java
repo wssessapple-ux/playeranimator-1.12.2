@@ -27,8 +27,20 @@ import java.util.Map;
 @Mixin(EntityPlayer.class)
 public abstract class PlayerEntityMixin implements IAnimatedPlayer {
 
+    /**
+     * Created lazily: this mixin also lands on {@code EntityPlayerMP} and on fake players, which
+     * never animate on the client but would otherwise get a map allocated for every instance.
+     */
     @Unique
-    private Map<ResourceLocation, IAnimation> playeranimator$modAnimationData = new HashMap<>();
+    private Map<ResourceLocation, IAnimation> playeranimator$modAnimationData;
+
+    @Unique
+    private Map<ResourceLocation, IAnimation> playeranimator$modData() {
+        if (playeranimator$modAnimationData == null) {
+            playeranimator$modAnimationData = new HashMap<>();
+        }
+        return playeranimator$modAnimationData;
+    }
 
     @Unique
     private AnimationStack playeranimator$animationStack;
@@ -46,7 +58,7 @@ public abstract class PlayerEntityMixin implements IAnimatedPlayer {
         this.playeranimator$animationStack = stack;
         if ((Object) this instanceof AbstractClientPlayer) {
             PlayerAnimationFactory.ANIMATION_DATA_FACTORY.prepareAnimations(
-                    (AbstractClientPlayer) (Object) this, stack, playeranimator$modAnimationData);
+                    (AbstractClientPlayer) (Object) this, stack, playeranimator$modData());
             PlayerAnimationAccess.REGISTER_ANIMATION_EVENT.invoker()
                     .registerAnimation((AbstractClientPlayer) (Object) this, stack);
         }
@@ -66,15 +78,15 @@ public abstract class PlayerEntityMixin implements IAnimatedPlayer {
 
     @Override
     public @Nullable IAnimation playerAnimator_getAnimation(@NotNull ResourceLocation id) {
-        return playeranimator$modAnimationData.get(id);
+        return playeranimator$modData().get(id);
     }
 
     @Override
     public @Nullable IAnimation playerAnimator_setAnimation(@NotNull ResourceLocation id, @Nullable IAnimation animation) {
         if (animation == null) {
-            return playeranimator$modAnimationData.remove(id);
+            return playeranimator$modData().remove(id);
         } else {
-            return playeranimator$modAnimationData.put(id, animation);
+            return playeranimator$modData().put(id, animation);
         }
     }
 

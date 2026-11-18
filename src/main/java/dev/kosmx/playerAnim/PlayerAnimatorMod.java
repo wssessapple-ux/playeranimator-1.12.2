@@ -1,6 +1,8 @@
 package dev.kosmx.playerAnim;
 
+import dev.kosmx.playerAnim.config.PlayerAnimatorConfig;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,5 +24,10 @@ public class PlayerAnimatorMod {
 
     public PlayerAnimatorMod() {
         LOGGER.info("Player Animator {} initialized (client-only, no network layer)", Tags.VERSION);
+    }
+
+    @Mod.EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        PlayerAnimatorConfig.load(event.getModConfigurationDirectory());
     }
 }
