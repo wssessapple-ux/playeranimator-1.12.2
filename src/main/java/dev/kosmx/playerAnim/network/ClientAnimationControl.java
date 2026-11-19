@@ -19,7 +19,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,6 +43,9 @@ public final class ClientAnimationControl {
 
     private static final Logger LOGGER = LogManager.getLogger(PlayerAnimatorMod.MOD_ID);
     private static final Set<ResourceLocation> missingReported = new HashSet<>();
+
+    /** Last tick's active state per player, used to detect a one-shot clip finishing. */
+    private static final Map<UUID, Boolean> wasActive = new HashMap<>();
 
     private static boolean factoryRegistered;
 
@@ -96,6 +101,22 @@ public final class ClientAnimationControl {
             return;
         }
         layer.replaceAnimationWithFade(fade(fadeOut), null);
+    }
+
+    /**
+     * Called every client tick: report to the server when a one-shot network animation stops,
+     * so it can drop the tracked state. Looping clips stay active and never report finished.
+     */
+    static void checkFinished(AbstractClientPlayer player) {
+        UUID id = player.getUniqueID();
+        ModifierLayer<IAnimation> layer = layerFor(player);
+        IAnimation animation = layer == null ? null : layer.getAnimation();
+        boolean active = animation != null && animation.isActive();
+        Boolean previous = wasActive.get(id);
+        if (Boolean.TRUE.equals(previous) && !active) {
+            PlayerAnimatorNetwork.sendAnimationFinished(id);
+        }
+        wasActive.put(id, active);
     }
 
     private static AbstractClientPlayer findPlayer(UUID playerId) {

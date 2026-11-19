@@ -31,6 +31,7 @@ public final class PlayerAnimatorNetwork {
 
     private static final byte ID_PLAY = 0;
     private static final byte ID_STOP = 1;
+    private static final byte ID_FINISHED = 2;
 
     private static final Logger LOGGER = LogManager.getLogger(PlayerAnimatorMod.MOD_ID);
     private static final SimpleNetworkWrapper WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(PlayerAnimatorMod.MOD_ID);
@@ -38,8 +39,9 @@ public final class PlayerAnimatorNetwork {
 
     /**
      * Animations currently driven through {@link #playAnimationForObservers}, keyed by the
-     * source player's UUID. Kept so a player who joins or changes dimension after the animation
-     * started can be caught up with what is already playing. Server-side state only.
+     * source player's UUID. Kept so a player who joins, changes dimension, or starts tracking
+     * the source after the animation began can be caught up with what is already playing.
+     * Server-side state only.
      */
     private static final Map<UUID, ActiveAnimation> ACTIVE_ANIMATIONS = new ConcurrentHashMap<>();
 
@@ -54,6 +56,7 @@ public final class PlayerAnimatorNetwork {
         registered = true;
         WRAPPER.registerMessage(PlayAnimationHandler.class, MessagePlayAnimation.class, ID_PLAY, Side.CLIENT);
         WRAPPER.registerMessage(StopAnimationHandler.class, MessageStopAnimation.class, ID_STOP, Side.CLIENT);
+        WRAPPER.registerMessage(FinishedAnimationHandler.class, MessageAnimationFinished.class, ID_FINISHED, Side.SERVER);
         LOGGER.info("Player Animator network channel '{}' registered", PlayerAnimatorMod.MOD_ID);
     }
 
@@ -131,7 +134,32 @@ public final class PlayerAnimatorNetwork {
         }
     }
 
-    /** Drop a source player's tracked animation (called when that player leaves the server). */
+    /**
+     * Re-send the source player's active animation to one observer (called when that observer
+     * starts tracking the source, e.g. walking into tracking range).
+     */
+    static void resendToObserverForSource(EntityPlayerMP observer, EntityPlayerMP source) {
+        if (observer == null || source == null) {
+            return;
+        }
+        ActiveAnimation active = ACTIVE_ANIMATIONS.get(source.getUniqueID());
+        if (active == null) {
+            return;
+        }
+        WRAPPER.sendTo(
+                new MessagePlayAnimation(source.getUniqueID(), active.animationId, active.fadeIn),
+                observer
+        );
+    }
+
+    /** Tell the server this player's network animation has finished and its state can be dropped. */
+    public static void sendAnimationFinished(UUID sourceId) {
+        if (sourceId != null) {
+            WRAPPER.sendToServer(new MessageAnimationFinished(sourceId));
+        }
+    }
+
+    /** Drop a source player's tracked animation (called from the finished packet or on logout). */
     static void clearSource(UUID sourceId) {
         if (sourceId != null) {
             ACTIVE_ANIMATIONS.remove(sourceId);
