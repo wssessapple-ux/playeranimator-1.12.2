@@ -12,6 +12,10 @@ import net.minecraftforge.fml.relauncher.Side;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Server to client animation packets.
  * <p>
@@ -31,6 +35,13 @@ public final class PlayerAnimatorNetwork {
     private static final Logger LOGGER = LogManager.getLogger(PlayerAnimatorMod.MOD_ID);
     private static final SimpleNetworkWrapper WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(PlayerAnimatorMod.MOD_ID);
     private static boolean registered;
+
+    /**
+     * Animations currently driven through {@link #playAnimationForObservers}, keyed by the
+     * source player's UUID. Kept so a player who joins or changes dimension after the animation
+     * started can be caught up with what is already playing. Server-side state only.
+     */
+    private static final Map<UUID, ActiveAnimation> ACTIVE_ANIMATIONS = new ConcurrentHashMap<>();
 
     private PlayerAnimatorNetwork() {
     }
@@ -71,6 +82,7 @@ public final class PlayerAnimatorNetwork {
         if (source == null || animationId == null) {
             return;
         }
+        ACTIVE_ANIMATIONS.put(source.getUniqueID(), new ActiveAnimation(animationId, fadeIn));
         sendToObservers(source, new MessagePlayAnimation(source.getUniqueID(), animationId, fadeIn));
     }
 
@@ -87,7 +99,43 @@ public final class PlayerAnimatorNetwork {
         if (source == null) {
             return;
         }
+        ACTIVE_ANIMATIONS.remove(source.getUniqueID());
         sendToObservers(source, new MessageStopAnimation(source.getUniqueID(), fadeOut));
+    }
+
+    // ------------------------------------------------------------ sync / catch-up
+
+    /**
+     * Re-send every animation currently playing for observers in the observer's dimension.
+     * Called when a player joins or changes dimension, so they do not miss a clip that started
+     * before they could see the source player.
+     */
+    static void resendToObserver(EntityPlayerMP observer) {
+        if (observer == null) {
+            return;
+        }
+        MinecraftServer server = observer.getServer();
+        if (server == null) {
+            return;
+        }
+        for (Map.Entry<UUID, ActiveAnimation> entry : ACTIVE_ANIMATIONS.entrySet()) {
+            EntityPlayerMP source = server.getPlayerList().getPlayerByUUID(entry.getKey());
+            if (source == null || source.dimension != observer.dimension) {
+                continue;
+            }
+            ActiveAnimation active = entry.getValue();
+            WRAPPER.sendTo(
+                    new MessagePlayAnimation(source.getUniqueID(), active.animationId, active.fadeIn),
+                    observer
+            );
+        }
+    }
+
+    /** Drop a source player's tracked animation (called when that player leaves the server). */
+    static void clearSource(UUID sourceId) {
+        if (sourceId != null) {
+            ACTIVE_ANIMATIONS.remove(sourceId);
+        }
     }
 
     private static void sendToObservers(EntityPlayer source, IMessage message) {
@@ -100,6 +148,17 @@ public final class PlayerAnimatorNetwork {
             if (observer.dimension == source.dimension) {
                 WRAPPER.sendTo(message, observer);
             }
+        }
+    }
+
+    /** Server-side record of an animation currently playing for observers. */
+    private static final class ActiveAnimation {
+        private final ResourceLocation animationId;
+        private final int fadeIn;
+
+        private ActiveAnimation(ResourceLocation animationId, int fadeIn) {
+            this.animationId = animationId;
+            this.fadeIn = fadeIn;
         }
     }
 }
