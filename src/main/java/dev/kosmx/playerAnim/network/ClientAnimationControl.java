@@ -78,7 +78,9 @@ public final class ClientAnimationControl {
         if (layer == null) {
             return;
         }
-        layer.replaceAnimationWithFade(fade(fadeIn), new KeyframeAnimationPlayer(animation));
+        // fadeFromNothing=true: fade in from the default pose even when the layer was empty
+        // (the two-arg overload skips the fade modifier when there is no active animation).
+        layer.replaceAnimationWithFade(fade(fadeIn), new KeyframeAnimationPlayer(animation), true);
     }
 
     public static void stop(UUID playerId, int fadeOut) {
