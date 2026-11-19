@@ -116,6 +116,9 @@ Notes:
   layers keep running underneath and anything with a higher priority still wins.
 - Observers are picked by dimension; 1.12.2 has no cheap "can this player see that entity"
   query, and a packet sent to a client that cannot see the player is just ignored.
+- Players who join or change dimension after an animation started are caught up: the server
+  resends the active clips in their dimension, so a late observer does not miss what is already
+  playing.
 - Packets are dispatched to the client thread instead of being applied from netty.
 
 ## Pose mapping
